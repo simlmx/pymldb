@@ -1,0 +1,202 @@
+#!/usr/bin/env python
+import sys, os, re
+import logging
+import readline
+from pymldb import Connection
+from pprint import pformat
+
+class Color:
+    RED =    '\001\033[31m\002'
+    GREEN =  '\001\033[32m\002'
+    ORANGE = '\001\033[33m\002'
+    BLUE =   '\001\033[34m\002'
+    WHITE =  '\001\033[37m\002'
+    RESET =  '\001\033[0m\002'
+
+def color_text(text, color):
+    return getattr(Color, color.upper()) + str(text) + Color.RESET
+
+def regex_replace_color(text, color, regex):
+    return re.sub(regex, color_text('\g<0>', color), text)
+
+# thanks to http://pymotw.com/2/readline/ for some inspiration!
+class Completer(object):
+    def __init__(self, mldb):
+        self.matches = []
+        self.mldb = mldb
+        return
+
+    def complete(self, text, state):
+        response = None
+        if state == 0:
+
+            origline = readline.get_line_buffer()
+            end = readline.get_endidx()
+            truncline = origline[:end]
+            words = truncline.split()
+
+            # print('origline', origline)
+            # print('end', end)
+            # print('truncline', truncline)
+            # print('words', words)
+
+            # possibilities
+            # <TAB>          -> no results
+            # ABC<TAB>       -> no result
+            # FROM <TAB>     -> results
+            # FROM asdf<TAB> -> results
+            if len(words) == 0:
+                last_word = ''
+            else:
+                # if we are beginning a new word, the last word is the last
+                if truncline[-1] == ' ':
+                    last_word = words[-1]
+                    # if not, it's because we are typing a word, the last word is
+                    # the one before
+                elif len(words) >= 2:
+                    last_word = words[-2]
+                else:
+                    last_word = ''
+
+            if last_word.lower() in ['from', 'join', r'\d']:
+                allobjects = self.mldb.v1('datasets').get_query()
+                if text != '':
+                    allobjects = [x + ' ' for x in allobjects if x.startswith(text)]
+            elif last_word.lower() in ['function', r'\f']:
+                allobjects = self.mldb.v1('functions').get_query()
+                if text != '':
+                    allobjects = [x + ' ' for x in allobjects if x.startswith(text)]
+            else:
+                allobjects = ['SELECT ', 'FROM ', 'APPLY ', 'FUNCTION ', 'JOIN ',
+                              'ON ', 'AS ', 'WITH ', 'EXTRACT ', 'LIMIT ',
+                              'WHERE ', 'HAVING ', 'GROUP BY ', 'ORDER BY ',
+                              'BY ', 'ASC', 'DESC', 'CAST']
+                if text != '':
+                    allobjects = [x for x in allobjects
+                                  if x.startswith(text.upper())]
+            self.matches = allobjects
+            logging.debug('matches: %s', self.matches)
+        try:
+            response = self.matches[state]
+        except IndexError:
+            response = None
+        return response
+
+
+class Querier(object):
+    def __init__(self, normal_prompt=':< ', multiline_prompt=' \\ ',
+                 history_file=None):
+        if history_file is None:
+            history_file = os.path.expanduser('~') + '/.mldbsql_history'
+        self._normal_prompt = color_text(normal_prompt, 'green')
+        self._multiline_prompt = color_text(multiline_prompt, 'green')
+        # self._normal_prompt = normal_prompt
+        # self._multiline_prompt = multiline_prompt
+        self._history_file = history_file
+        self.setup_readline()
+        self.reset()
+
+    def setup_readline(self):
+        if os.path.exists(self._history_file):
+            readline.read_history_file(self._history_file)
+        readline.set_completer(Completer(mldb).complete)
+        readline.parse_and_bind('tab: complete')
+        readline.parse_and_bind('set show-all-if-ambiguous on')
+
+    def reset(self):
+        self.query = ''
+        self.multiline = False
+
+    def input(self):
+        try:
+            line = raw_input(self.prompt).strip()
+
+            if self.multiline:
+                query = self.query + ' ' + line
+            else:
+                query = line
+
+            if query == 'quit':
+                sys.exit()
+
+            if query == '':
+                return
+
+            if query.startswith(r'\d'):
+                # only \d
+                if query == r'\d':
+                    print('\n'.join(mldb.v1.datasets.get()))
+                # \d dataset_name
+                else:
+                    query = query.split()
+                    print(self.format_json(
+                        mldb.v1.datasets(query[-1]).get()))
+                self.reset()
+                return
+
+            if query.startswith(r'\f'):
+                # only \f
+                if query == r'\f':
+                    print('\n'.join(mldb.v1.functions.get()))
+                # \f function_name
+                else:
+                    print(color_text('CONFIG', 'white'))
+                    query = query.split()
+                    print(self.format_json(
+                        mldb.v1.functions(query[-1]).get()))
+                    print(color_text('INFOS', 'white'))
+                    print(self.format_json(
+                        mldb.v1.functions(query[-1]).info.get()))
+                self.reset()
+                return
+
+            if query in ['\h', 'help', 'help;']:
+                print('no help yet mouhahaha!')
+                self.reset()
+                return
+
+            if query[-1] == ";":
+                query = query[:-1]
+                try:
+                    print(mldb.query(query))
+                except Exception as e:
+                    print e
+
+                self.reset()
+            else:
+                self.query = query
+                self.multiline = True
+
+        except KeyboardInterrupt as e:
+            print e
+            self.reset()
+            return
+
+    def format_json(self, blob):
+        text = pformat(blob)
+        text = regex_replace_color(text, 'blue', "\d+")
+        text = regex_replace_color(text, 'red', '[{]|[}]')
+        text = regex_replace_color(text, 'orange', "u?['][^']+[']:")
+        # text = regex_replace_color(text, 'green', "u?'")
+        # text = regex_replace_color(text, 'red', "[:]")
+        return text
+
+    def go(self):
+        try:
+            while True:
+                querier.input()
+        finally:
+            readline.write_history_file(self._history_file)
+
+    @property
+    def prompt(self):
+        if self.multiline:
+            return self._multiline_prompt
+        return self._normal_prompt
+
+if __name__ == '__main__':
+    # load history first
+    # TODO use argparse
+    mldb = Connection(sys.argv[1])
+    querier = Querier()
+    querier.go()
