@@ -8,22 +8,21 @@ import pandas as pd
 
 
 class Connection(object):
-    
+
     def __init__(self, host="http://localhost"):
-        if not host.startswith("http"): 
+        if not host.startswith("http"):
             raise Exception("URIs must start with 'http'")
         self.host = host.strip("/")
         self.v1 = resource.Resource(self.host).v1
-        
-    def query(self, sql):
-        resp = self.v1.query.get(params=dict(q=sql, format="aos"), raise_on_error=False)
-        if resp.status_code != 200: return resp
-        resp_json = resp.json()
-        if len(resp_json) == 0: 
+
+    def query(self, sql, raise_on_error=True):
+        resp_json = self.v1.query.get(params=dict(q=sql, format="aos"),
+                                 raise_on_error=raise_on_error)
+        if len(resp_json) == 0:
             return pd.DataFrame()
         else:
             return pd.DataFrame.from_records(resp_json, index="_rowName")
-    
+
     #def batframe(self, dataset_id):
     #    return data.BatFrame(self.v1.datasets(dataset_id).uri)
 
