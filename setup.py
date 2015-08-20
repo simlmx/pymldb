@@ -1,4 +1,4 @@
-"""setuptools based setup module for pymldb. 
+"""setuptools based setup module for pymldb.
 
 based on:
 https://github.com/pypa/sampleproject
@@ -41,7 +41,7 @@ setup(
         'Programming Language :: Python :: 2',
 
         'Intended Audience :: Developers',
-	'Topic :: Database :: Database Engines/Servers',
+        'Topic :: Database :: Database Engines/Servers',
         'Topic :: Scientific/Engineering :: Mathematics',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
     ],
@@ -56,6 +56,6 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['numpy',
                       'pandas',
-		      'requests[security]>=2.6',
-		     ],
+                      'requests[security]>=2.6',
+                      'Pygments'],
 )
