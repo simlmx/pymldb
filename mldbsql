@@ -150,6 +150,19 @@ class Querier(object):
                 self.reset()
                 return
 
+            if query.startswith(r'\p'):
+                # only \p
+                if query == r'\p':
+                    print('\n'.join(mldb.v1.procedures.get()))
+                # \p procedure_name
+                else:
+                    print(color_text('CONFIG', 'white'))
+                    query = query.split()
+                    print(self.format_json(
+                        mldb.v1.procedures(query[-1]).get()))
+                self.reset()
+                return
+
             if query in ['\h', 'help', 'help;']:
                 print('no help yet mouhahaha!')
                 self.reset()
@@ -197,6 +210,8 @@ class Querier(object):
 if __name__ == '__main__':
     # load history first
     # TODO use argparse
+    # the argument is the address of your mldb, something like
+    # http://localhost:8088
     mldb = Connection(sys.argv[1])
     querier = Querier()
     querier.go()
