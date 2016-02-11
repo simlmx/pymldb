@@ -59,7 +59,7 @@ class Completer(object):
                     last_word = ''
 
             if last_word.lower() in ['from', 'join', r'\d']:
-                allobjects = self.mldb.v1('datasets').get_query()
+                allobjects = self.mldb.get('/v1/datasets').json()
                 if text != '':
                     allobjects = [x + ' ' for x in allobjects if x.startswith(text)]
             elif last_word.lower() in ['function', r'\f']:
@@ -125,41 +125,42 @@ class Querier(object):
             if query.startswith(r'\d'):
                 # only \d
                 if query == r'\d':
-                    print('\n'.join(mldb.v1.datasets.get()))
+                    print('\n'.join(mldb.get('/v1/datasets').json()))
                 # \d dataset_name
                 else:
                     query = query.split()
                     print(self.format_json(
-                        mldb.v1.datasets(query[-1]).get()))
+                        mldb.get('/v1/datasets/' + query[-1]).json()))
                 self.reset()
                 return
 
             if query.startswith(r'\f'):
                 # only \f
                 if query == r'\f':
-                    print('\n'.join(mldb.v1.functions.get()))
+                    print('\n'.join(mldb.get('/v1/functions').json()))
                 # \f function_name
                 else:
                     print(color_text('CONFIG', 'white'))
                     query = query.split()
                     print(self.format_json(
-                        mldb.v1.functions(query[-1]).get()))
+                        mldb.get('/v1/functions/' + query[-1]).json()))
                     print(color_text('INFOS', 'white'))
                     print(self.format_json(
-                        mldb.v1.functions(query[-1]).info.get()))
+                        mldb.get('/v1/functions/' + query[-1]).json()))
                 self.reset()
                 return
 
             if query.startswith(r'\p'):
                 # only \p
                 if query == r'\p':
-                    print('\n'.join(mldb.v1.procedures.get()))
+                    print('\n'.join(
+                        mldb.get('/v1/procedures').json()))
                 # \p procedure_name
                 else:
                     print(color_text('CONFIG', 'white'))
                     query = query.split()
                     print(self.format_json(
-                        mldb.v1.procedures(query[-1]).get()))
+                        mldb.get('/v1/procedures/' + query[-1]).json()))
                 self.reset()
                 return
 
