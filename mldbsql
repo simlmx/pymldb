@@ -2,8 +2,13 @@
 import sys, os, re
 import logging
 import readline
+import pandas
 from pymldb import Connection
 from pprint import pformat
+
+pandas.set_option('display.max_rows', 10000)
+pandas.set_option('display.max_columns', 9999)
+
 
 class Color:
     RED =    '\001\033[31m\002'
@@ -62,12 +67,13 @@ class Completer(object):
                 allobjects = self.mldb.get('/v1/datasets').json()
                 if text != '':
                     allobjects = [x + ' ' for x in allobjects if x.startswith(text)]
-            elif last_word.lower() in ['function', r'\f']:
-                allobjects = self.mldb.v1('functions').get_query()
+            elif last_word.lower() in ['select']:
+                allobjects = self.mldb.get('/v1/functions').json()
+                allobjects += ['COLUMNS EXPR']
                 if text != '':
-                    allobjects = [x + ' ' for x in allobjects if x.startswith(text)]
+                    allobjects = [x + '(' for x in allobjects if x.startswith(text)]
             else:
-                allobjects = ['SELECT ', 'FROM ', 'APPLY ', 'FUNCTION ', 'JOIN ',
+                allobjects = ['SELECT ', 'FROM ', 'JOIN ',
                               'ON ', 'AS ', 'WITH ', 'EXTRACT ', 'LIMIT ',
                               'WHERE ', 'HAVING ', 'GROUP BY ', 'ORDER BY ',
                               'BY ', 'ASC', 'DESC', 'CAST']
