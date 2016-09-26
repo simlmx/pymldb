@@ -11,20 +11,7 @@ pd.set_option('display.max_columns', 999)
 import requests
 import json
 from pymldb.util import add_repr_html_to_response
-# TODO move the pimpin' outside
 from IPython.display import display
-
-
-
-class Color:
-    GREEN = '\033[32m'
-    RED = '\033[31m'
-    ORANGE = '\033[33m'
-    WHITE = '\033[37m'
-    RESET = '\033[0m'
-
-def color(text, color):
-    return getattr(Color, color.upper()) + str(text) + Color.RESET
 
 
 def unescapeSpecialParams(params):
