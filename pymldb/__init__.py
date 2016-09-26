@@ -6,7 +6,7 @@
 #
 
 import pandas as pd
-pd.set_option('display.width', 999)
+pd.set_option('display.width', 150)
 pd.set_option('display.max_columns', 999)
 import requests
 import json
@@ -104,14 +104,14 @@ class Connection(_Connection):
     """My custom version with shortcuts of pymldb's Connection object"""
     debug=False
 
-    def post(self, url, payload):
+    def put(self, url, payload):
         # if in debug mode, will print the queries we are passing
         if self.debug:
             for key in payload['params'].iterkeys():
                 if key.endswith('Data'):
                     self.log(key)
                     self.log(payload['params'][key])
-        return super(Connection, self).post(url, payload)
+        return super(Connection, self).put(url, payload)
 
     def quick(self, verb, url, type_, **params):
         return getattr(self, verb.lower())(

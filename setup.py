@@ -58,5 +58,6 @@ setup(
                       'pandas',
                       'requests[security]>=2.6',
                       'pygments',
+                      'ipython'
                       ],
 )
